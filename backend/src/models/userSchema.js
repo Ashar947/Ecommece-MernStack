@@ -22,7 +22,6 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         minLength: [8, 'Password should be greater than 8 characters'],
-        select: false,
     },
     avatar: {
         public_id: {
@@ -36,12 +35,36 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        default:"user"
+        default: "user"
     },
-    resetPasswordToken:String,
-    resetPasswordExpire:Date,
+    tokens: [
+        {
+            token: {
+                type: String,
+                required: true
+            }
+        }
+    ]
+    
 
 })
+userSchema.methods.generateAuthToken = async function () {
+    try {
+        console.log(`${process.env.JWT_SECRETKEY}`)
+        console.log(`Token == generating `)
+        let genToken =jwt.sign({ _id: this._id.toString() },"JKFDHSFJKDHF38HKJAHKJAHFJKHAJKFHAJKFH");
+        console.log(`Token == ${genToken}`)
+        console.log(`gentoken`)
+        this.tokens = this.tokens.concat({token:genToken}); 
+        await this.save();
+        return genToken;
+        
+    } catch (error) {
+        console.log(`error is ${error}`);
+    }
+}
+
+
 // hasing passowrd
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
@@ -49,20 +72,11 @@ userSchema.pre('save', async function (next) {
     }
     this.password = await bcrypt.hash(this.password, 10);
 })
-// JWT TOKEN
-userSchema.methods.generateAuthToken = async function () {
-    console.log(`Token == generating `)
-    try {
-        return jwt.sign({ _id: this._id },`${process.env.JWT_SECRETKEY}`,{
-            expiresIn:"2d",
-        });
-    } catch (error) {
-        console.log(`error is ${error}`);
-    }
-}
+
 //  Compare Password
-userSchema.methods.comparePassword = async function(enteredPassword){
-    return await bcrypt.compare(enteredPassword,this.password)
+userSchema.methods.comparePassword = async function (enteredPassword,next) {
+    console.log(`Entered Password ${enteredPassword} this passowrd is ${this.password}` )
+    return await bcrypt.compare(`${enteredPassword}`, `${this.password}`);
 
 }
 

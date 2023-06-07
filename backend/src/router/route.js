@@ -1,13 +1,16 @@
 const express = require("express");
 const router = express.Router();
 require('../db/connection');
+const bcrypt = require('bcryptjs')
 const dotenv = require("dotenv");
 dotenv.config({ path: "backend/src/config/config.env" })
-// const cookieParser = require('cookie-Parser');
-// router.use(cookieParser());
+const cookieParser = require('cookie-Parser');
+router.use(cookieParser());
 
 const Product = require('../models/productSchema')
-const User = require('../models/userSchema')
+const User = require('../models/userSchema');
+
+const auth = require('../middleware/auth');
 
 
 
@@ -21,11 +24,16 @@ router.post('/createProducts', async (req, res) => {
 })
 
 router.get('/getProducts', async (req, res) => {
-    const product = await Product.find();
-    res.status(201).json({
-        success: true,
-        product
-    });
+    try {
+        const product = await Product.find();
+        res.status(201).json({
+            success: true,
+            product
+        });
+    } catch (error) {
+        console.log(error);
+        return res.send(error)
+    }
 })
 
 router.get('/product/:id', async (req, res) => {
@@ -85,66 +93,65 @@ router.delete('/deleteProducts/:id', async (req, res) => {
 })
 
 
-router.post('/registerUser',async(req,res)=>{
-    const{name,email,password}=req.body;
+router.post('/registerUser', async (req, res) => {
+    const { name, email, password } = req.body;
     const user = await User.create({
         name,
         email,
         password,
-        avatar:{
-            public_id:"Sample ID",
-            url:"profilePicture"
+        avatar: {
+            public_id: "Sample ID",
+            url: "profilePicture"
         }
     })
-
-    const token = user.generateAuthToken();
+    const token =await user.generateAuthToken();
     console.log(token)
-
     res.status(201).json({
-        success:true,
+        success: true,
         token,
     })
-
-
 })
 
-router.post('/loginUser',async(req,res)=>{
-    const{email,password} = req.body;
-    console.log(`Email is ${email} Password is ${password}`)
-    // if ((email.length===0) || (!password.length===0)){
-    //     res.status(500).json({
-    //         message:"Email/Password cannot be left empty"
-    //     })
-
-    // }
-    const user = await User.findOne({email}).select("+password");
-
-    if(!user){
-        res.status(501).json({
-            message:"User Not Found"
-        })
-    }
-    
-    const isPasswordMatch = user.comparePassword(password);
-    
-    if (!isPasswordMatch){
-        if(!user){
-            res.status(502).json({
-                message:"Password Not Matched"
+router.post('/loginUser', async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+        if ((!email) || (!password)) {
+            return res.status(500).json({
+                status: false,
+                message: "Email/Password cannot be blank"
             })
         }
-
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(501).json({
+                status: false,
+                message: "Email is Invalid"
+            })
+        }
+        const isPasswordMatched = await user.comparePassword(password);
+        console.log(`isPasswordMatched == ${isPasswordMatched}`)
+        if (!isPasswordMatched) {
+            return res.status(502).json({
+                status: false,
+                message: "password is Invalid"
+            })
+        }
+        const token =await user.generateAuthToken();
+        res.cookie("jwt", token, {
+            expires: new Date(
+                Date.now() + 5 * 24 * 60 * 60 * 1000
+            ),
+            httpOnly: true
+        });
+        return res.status(201).json({
+            status: true,
+            message: "Success",
+            token:token
+        })
+    } catch (error) {
+        console.log("new error");
+        return res.send(error)
     }
-
-    const token = user.generateAuthToken();
-    console.log(token)
-
-    res.status(201).json({
-        success:true,
-        token,
-    })
-
-
 })
 
 
