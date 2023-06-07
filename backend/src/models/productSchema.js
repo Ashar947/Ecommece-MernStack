@@ -16,7 +16,7 @@ const productSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    rating: {
+    ratings: {
         type: Number,
         default: 0
     },
@@ -48,6 +48,10 @@ const productSchema = new mongoose.Schema({
     },
     reviews:[
         {
+            user_id:{
+                type:String,
+                required:true
+            },
             name:{
                 type:String,
                 required:true

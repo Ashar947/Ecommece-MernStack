@@ -64,7 +64,6 @@ userSchema.methods.generateAuthToken = async function () {
     }
 }
 
-
 // hasing passowrd
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
@@ -75,7 +74,7 @@ userSchema.pre('save', async function (next) {
 
 //  Compare Password
 userSchema.methods.comparePassword = async function (enteredPassword,next) {
-    console.log(`Entered Password ${enteredPassword} this passowrd is ${this.password}` )
+    // console.log(`Entered Password ${enteredPassword} this passowrd is ${this.password}` )
     return await bcrypt.compare(`${enteredPassword}`, `${this.password}`);
 
 }
