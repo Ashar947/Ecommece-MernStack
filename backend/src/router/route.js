@@ -11,6 +11,7 @@ const Product = require('../models/productSchema')
 const User = require('../models/userSchema');
 
 const auth = require('../middleware/auth');
+const ApiFeatures = require("../controller/filter");
 
 
 
@@ -23,9 +24,11 @@ router.post('/createProducts', async (req, res) => {
     });
 })
 
-router.get('/getProducts', async (req, res) => {
+router.get('/getProducts',auth , async (req, res) => {
     try {
-        const product = await Product.find();
+        const resultPerPage = 5 ;
+        const apiFeature = new ApiFeatures(Product.find(),req.query).search().filter().pagination(resultPerPage); 
+        const product = await apiFeature.query;
         res.status(201).json({
             success: true,
             product
@@ -91,7 +94,6 @@ router.delete('/deleteProducts/:id', async (req, res) => {
         message: "Product Deleted Successfully"
     });
 })
-
 
 router.post('/registerUser', async (req, res) => {
     const { name, email, password } = req.body;
